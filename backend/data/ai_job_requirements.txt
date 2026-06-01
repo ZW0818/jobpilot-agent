@@ -1,0 +1,3 @@
+AI 岗位常见要求：
+Python、FastAPI、LangChain、RAG、向量数据库、Prompt Engineering、LLM 应用开发、Agent 编排、模型评测、数据处理、Docker 部署。
+候选人需要展示从需求拆解、原型开发、工程部署到效果评估的完整能力。

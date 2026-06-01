@@ -1,0 +1,6 @@
+JobPilot Supervisor runs four role-oriented agents in this order:
+
+1. ProfileAgent: parse resume and job description.
+2. KnowledgeAgent: retrieve local career knowledge with RAG.
+3. EvaluationAgent: score job fit and identify strengths and gaps.
+4. CoachAgent: generate resume optimization, interview questions, and report.

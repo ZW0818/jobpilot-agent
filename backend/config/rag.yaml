@@ -1,0 +1,5 @@
+chat_model_name: qwen-plus
+embedding_model_name: text-embedding-v4
+top_k: 4
+chunk_size: 600
+chunk_overlap: 80

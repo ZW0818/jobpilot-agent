@@ -1,0 +1,7 @@
+supervisor: supervisor_prompt.txt
+resume: resume_prompt.txt
+jd: jd_prompt.txt
+match: match_prompt.txt
+rewrite: rewrite_prompt.txt
+report: report_prompt.txt
+rag_summarize: rag_summarize.txt
