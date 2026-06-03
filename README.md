@@ -10,7 +10,8 @@ server.
 - Paste a target job description.
 - Parse resume and JD into structured JSON.
 - Retrieve local career knowledge for RAG context.
-- Calculate a match score and skill gaps.
+- Classify the job direction as AI, backend, frontend, or general.
+- Calculate a match score, score breakdown, skill gaps, and evidence table.
 - Generate resume rewrite suggestions and interview questions.
 - Render and download a Markdown report.
 - Run an optional local MCP server for match scoring and Markdown export demos.
@@ -33,6 +34,13 @@ uvicorn main:app --reload --port 8000
 
 Set `DASHSCOPE_API_KEY` in `.env` to enable LLM calls. Without a key, JobPilot
 uses deterministic fallback agents so the API and UI can still be tested.
+
+The analysis response keeps the original `score`, `level`, `matched_points`,
+`missing_points`, and `suggestions` fields, and also includes:
+
+- `job_classification`: rule-based job direction, confidence, and reason.
+- `match_result.score_detail`: skill, project, engineering, and resume-quality scores.
+- `match_result.evidence_items`: JD requirement, resume evidence, status, and suggestion.
 
 ## Frontend
 

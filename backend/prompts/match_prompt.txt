@@ -6,7 +6,24 @@ Return valid JSON only, with this shape:
   "level": "",
   "matched_points": [],
   "missing_points": [],
-  "suggestions": []
+  "suggestions": [],
+  "score_detail": {
+    "skill_match": 0,
+    "project_relevance": 0,
+    "engineering_ability": 0,
+    "resume_quality": 0
+  },
+  "evidence_items": [
+    {
+      "jd_requirement": "",
+      "resume_evidence": "",
+      "status": "matched",
+      "suggestion": ""
+    }
+  ]
 }
 
-The score must be an integer from 0 to 100. Do not invent candidate experience.
+score = skill_match + project_relevance + engineering_ability + resume_quality.
+Score caps: skill_match 40, project_relevance 30, engineering_ability 20, resume_quality 10.
+Evidence status must be one of matched, partial, missing. If evidence is missing, write "简历中未找到明确证据".
+Do not invent candidate experience.

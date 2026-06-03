@@ -3,6 +3,7 @@ import MarkdownPreview from "./MarkdownPreview";
 
 const TABS = [
   { id: "markdown", label: "报告正文" },
+  { id: "evidence", label: "匹配证据" },
   { id: "rewrite", label: "简历优化" },
   { id: "interview", label: "面试准备" },
   { id: "json", label: "原始数据" },
@@ -30,6 +31,51 @@ function ListBlock({ title, items = [], emptyText, description }) {
       ) : (
         <p className="muted-text">{emptyText}</p>
       )}
+    </section>
+  );
+}
+
+function EvidencePanel({ items = [] }) {
+  const normalizedItems = normalizeList(items);
+
+  if (!normalizedItems.length) {
+    return (
+      <section className="list-block">
+        <div className="block-heading">
+          <h3>匹配证据对照表</h3>
+          <p>这里会展示岗位要求、简历证据、匹配状态和优化建议。</p>
+        </div>
+        <p className="muted-text">暂无匹配证据。</p>
+      </section>
+    );
+  }
+
+  return (
+    <section className="evidence-panel">
+      <div className="block-heading">
+        <h3>匹配证据对照表</h3>
+        <p>逐项核对 JD 要求和简历中的实际证据。</p>
+      </div>
+      <div className="evidence-list">
+        {normalizedItems.map((item, index) => (
+          <article className="evidence-row" key={`${item.jd_requirement || "requirement"}-${index}`}>
+            <div>
+              <span className="mini-label">JD 要求</span>
+              <strong>{item.jd_requirement || "未识别"}</strong>
+            </div>
+            <div>
+              <span className="mini-label">简历证据</span>
+              <p>{item.resume_evidence || "简历中未找到明确证据"}</p>
+            </div>
+            <div>
+              <span className={`status-badge ${item.status || "missing"}`}>
+                {item.status || "missing"}
+              </span>
+            </div>
+            <p>{item.suggestion || "暂无建议。"}</p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -118,6 +164,8 @@ export default function ResultTabs({ result, isLoading = false }) {
         role="tabpanel"
       >
         {activeTab === "markdown" ? <MarkdownPreview markdown={result.markdown_report} /> : null}
+
+        {activeTab === "evidence" ? <EvidencePanel items={match.evidence_items} /> : null}
 
         {activeTab === "rewrite" ? (
           <div className="rewrite-grid">

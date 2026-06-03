@@ -660,6 +660,50 @@ button:disabled {
   text-align: center;
 }
 
+.classification-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  border: 1px solid rgba(13, 115, 119, 0.16);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--brand-deep);
+  font-weight: 900;
+  padding: 12px 14px;
+}
+
+.classification-pill strong {
+  color: var(--brand);
+}
+
+.score-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.score-detail-grid div {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.48);
+  padding: 12px;
+}
+
+.score-detail-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--brand-deep);
+  font-size: 1.35rem;
+}
+
+.score-detail-grid small {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .score-points {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -876,6 +920,61 @@ button:disabled {
   gap: 14px;
 }
 
+.evidence-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.evidence-list {
+  display: grid;
+  gap: 12px;
+}
+
+.evidence-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(240px, 1.3fr) 96px minmax(220px, 1.1fr);
+  gap: 14px;
+  align-items: start;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 16px;
+}
+
+.evidence-row strong,
+.evidence-row p {
+  display: block;
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.evidence-row strong {
+  color: var(--brand-deep);
+}
+
+.status-badge {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 76px;
+  border-radius: 999px;
+  background: rgba(217, 145, 52, 0.16);
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 950;
+  padding: 8px 10px;
+}
+
+.status-badge.matched {
+  background: rgba(37, 157, 106, 0.16);
+  color: var(--success);
+}
+
+.status-badge.missing {
+  background: rgba(189, 70, 53, 0.14);
+  color: var(--danger);
+}
+
 .list-block ul {
   display: grid;
   gap: 10px;
@@ -974,6 +1073,10 @@ button:disabled {
   .process-strip,
   .result-summary-card {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .evidence-row {
+    grid-template-columns: 1fr;
   }
 }
 

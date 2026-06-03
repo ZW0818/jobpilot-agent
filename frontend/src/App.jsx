@@ -157,7 +157,11 @@ export default function App() {
         />
 
         <aside className="insight-rail">
-          <ScoreCard result={result?.match_result} isLoading={isLoading} />
+          <ScoreCard
+            result={result?.match_result}
+            jobClassification={result?.job_classification}
+            isLoading={isLoading}
+          />
           <AgentTimeline logs={result?.agent_logs} isLoading={isLoading} />
         </aside>
       </section>

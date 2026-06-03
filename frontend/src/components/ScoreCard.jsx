@@ -13,7 +13,21 @@ function getScoreAdvice(score, hasResult) {
   return "当前匹配度偏低，建议谨慎投递，优先补齐岗位核心能力或选择更贴合的岗位。";
 }
 
-export default function ScoreCard({ result, isLoading = false }) {
+const SCORE_DETAIL_LABELS = [
+  ["skill_match", "核心技能", 40],
+  ["project_relevance", "项目相关", 30],
+  ["engineering_ability", "工程能力", 20],
+  ["resume_quality", "表达完整", 10],
+];
+
+const DOMAIN_LABELS = {
+  ai: "AI 岗位",
+  backend: "后端岗位",
+  frontend: "前端岗位",
+  general: "通用岗位",
+};
+
+export default function ScoreCard({ result, jobClassification, isLoading = false }) {
   const hasResult = Boolean(result);
   const score = Number(result?.score || 0);
   const level = result?.level || (isLoading ? "评估中..." : "暂无评分");
@@ -21,6 +35,8 @@ export default function ScoreCard({ result, isLoading = false }) {
   const matched = result?.matched_points || [];
   const missing = result?.missing_points || [];
   const suggestions = result?.suggestions || [];
+  const scoreDetail = result?.score_detail || {};
+  const classification = jobClassification || {};
   const advice = isLoading ? "正在综合简历信息、岗位要求和知识库证据，请稍候。" : getScoreAdvice(score, hasResult);
 
   return (
@@ -38,7 +54,27 @@ export default function ScoreCard({ result, isLoading = false }) {
       </div>
 
       <div className="score-level">{level}</div>
+      {hasResult ? (
+        <div className="classification-pill" title={classification.reason || "暂无识别原因"}>
+          <span>{DOMAIN_LABELS[classification.domain] || "通用岗位"}</span>
+          <strong>{Math.round(Number(classification.confidence || 0) * 100)}%</strong>
+        </div>
+      ) : null}
       <p className="score-advice">{advice}</p>
+
+      {hasResult ? (
+        <div className="score-detail-grid" aria-label="分项评分">
+          {SCORE_DETAIL_LABELS.map(([key, label, max]) => (
+            <div key={key}>
+              <span className="mini-label">{label}</span>
+              <strong>
+                {Number(scoreDetail[key] || 0)}
+                <small>/{max}</small>
+              </strong>
+            </div>
+          ))}
+        </div>
+      ) : null}
 
       <div className="score-points">
         <div>

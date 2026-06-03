@@ -1,7 +1,7 @@
 from agent.tools.agent_tools import parse_json_output
 from agent.tools.middleware import log_step
 from model.factory import get_chat_model, has_dashscope_key
-from schemas.jobpilot_schema import JDInfo, MatchResult, ResumeInfo, RewriteResult
+from schemas.jobpilot_schema import JDInfo, JobClassification, MatchResult, ResumeInfo, RewriteResult
 from services.markdown_service import build_report_markdown
 from utils.prompt_loader import load_prompt
 
@@ -16,9 +16,17 @@ class CoachAgent:
         jd_info: JDInfo,
         match_result: MatchResult,
         rag_context: str,
+        job_classification: JobClassification | None = None,
     ) -> tuple[RewriteResult, str]:
         rewrite_result = self._build_rewrite_result(resume_info, jd_info, match_result, rag_context)
-        markdown_report = build_report_markdown(resume_info, jd_info, match_result, rewrite_result, rag_context)
+        markdown_report = build_report_markdown(
+            resume_info,
+            jd_info,
+            match_result,
+            rewrite_result,
+            rag_context,
+            job_classification,
+        )
         return rewrite_result, markdown_report
 
     def _build_rewrite_result(

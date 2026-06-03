@@ -7,7 +7,7 @@ class RAGService:
     def __init__(self) -> None:
         self.vector_store = VectorStoreManager()
 
-    def retrieve_context(self, query: str) -> str:
+    def retrieve_context(self, query: str, preferred_files: list[str] | None = None) -> str:
         retriever = self.vector_store.get_retriever()
         if retriever is not None:
             try:
@@ -19,13 +19,19 @@ class RAGService:
             except Exception:
                 pass
 
-        return self._fallback_context(query)
+        return self._fallback_context(query, preferred_files or [])
 
-    def _fallback_context(self, query: str) -> str:
+    def _fallback_context(self, query: str, preferred_files: list[str]) -> str:
         data_dir = backend_root() / "data"
         skills = set(extract_known_skills(query))
         snippets: list[str] = []
-        for path in sorted(data_dir.glob("*.txt")):
+
+        preferred_paths = [data_dir / name for name in preferred_files]
+        remaining_paths = sorted(path for path in data_dir.glob("*.txt") if path.name not in set(preferred_files))
+
+        for path in [*preferred_paths, *remaining_paths]:
+            if not path.exists():
+                continue
             try:
                 text = path.read_text(encoding="utf-8")
             except OSError:

@@ -5,9 +5,11 @@ from typing import Any
 
 COMMON_SKILLS = [
     "Python",
+    "Java",
     "FastAPI",
     "Django",
     "Flask",
+    "Spring Boot",
     "LangChain",
     "RAG",
     "LLM",
@@ -21,6 +23,7 @@ COMMON_SKILLS = [
     "MySQL",
     "PostgreSQL",
     "Redis",
+    "Kafka",
     "Docker",
     "Kubernetes",
     "Linux",
@@ -31,6 +34,9 @@ COMMON_SKILLS = [
     "FAISS",
     "Prompt Engineering",
     "Tool Calling",
+    "Embedding",
+    "Webpack",
+    "Vite",
 ]
 
 
