@@ -64,3 +64,22 @@ class JobPilotResult(BaseModel):
     rewrite_result: RewriteResult
     markdown_report: str
     agent_logs: list[str] = Field(default_factory=list)
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(default="user", pattern="^(user|assistant)$")
+    content: str = Field(default="", max_length=2000)
+
+
+class CareerChatRequest(BaseModel):
+    question: str = Field(..., min_length=1, max_length=1000)
+    history: list[ChatMessage] = Field(default_factory=list, max_length=8)
+
+
+class CareerChatResponse(BaseModel):
+    answer: str
+    optimized_query: str = ""
+    retrieval_status: str = "miss"
+    sources: list[str] = Field(default_factory=list)
+    agent_logs: list[str] = Field(default_factory=list)
+    used_model: bool = False

@@ -4,6 +4,7 @@ import UploadPanel from "./components/UploadPanel";
 import ScoreCard from "./components/ScoreCard";
 import AgentTimeline from "./components/AgentTimeline";
 import ResultTabs from "./components/ResultTabs";
+import CareerChatPanel from "./components/CareerChatPanel";
 
 const SAMPLE_JD = `岗位：AI Agent 应用开发工程师
 职责：
@@ -143,6 +144,8 @@ export default function App() {
         <span>03 多智能体分析</span>
         <span>04 查看报告与建议</span>
       </section>
+
+      <CareerChatPanel />
 
       <section aria-busy={isLoading} className="workspace-grid" id="workspace">
         <UploadPanel

@@ -17,3 +17,12 @@ export async function analyzeJob(resumeFile, jdText) {
 
   return response.data;
 }
+
+export async function askCareerQuestion(question, history = []) {
+  const response = await axios.post(`${API_BASE}/api/chat`, {
+    question,
+    history,
+  });
+
+  return response.data;
+}

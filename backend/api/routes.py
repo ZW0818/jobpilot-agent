@@ -1,6 +1,7 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
-from schemas.jobpilot_schema import JobPilotResult
+from schemas.jobpilot_schema import CareerChatRequest, CareerChatResponse, JobPilotResult
+from services.career_chat_service import CareerChatService
 from services.file_service import extract_text_from_upload
 from services.supervisor_service import SupervisorService
 
@@ -22,3 +23,13 @@ async def analyze_resume(
 
     supervisor = SupervisorService()
     return supervisor.run(resume_text=resume_text, jd_text=jd_text)
+
+
+@router.post("/chat", response_model=CareerChatResponse)
+async def career_chat(payload: CareerChatRequest) -> CareerChatResponse:
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="question is required.")
+
+    chat_service = CareerChatService()
+    return chat_service.answer(question=question, history=payload.history)
