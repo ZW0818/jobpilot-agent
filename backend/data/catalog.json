@@ -1,0 +1,33 @@
+{
+  "ai_job_requirements.txt": {"domain": "ai", "title": "AI 岗位要求"},
+  "agent_interview_questions.txt": {"domain": "ai", "title": "Agent 面试"},
+  "rag_interview_questions.txt": {"domain": "ai", "title": "RAG 面试"},
+  "backend_job_requirements.txt": {"domain": "backend", "title": "后端岗位要求"},
+  "frontend_job_requirements.txt": {"domain": "frontend", "title": "前端岗位要求"},
+  "project_resume_templates.txt": {"domain": "ai", "title": "RAG 项目示例"},
+  "resume_optimization_rules.txt": {"domain": "general", "title": "简历优化"},
+  "ai_rag_engineering.md": {
+    "domain": "ai", "title": "RAG 应用工程", "tags": ["RAG", "检索", "评测"],
+    "references": ["https://docs.langchain.com/oss/python/langchain/retrieval"],
+    "reviewed_at": "2026-11-04", "kind": "官方概念摘要与项目辅导建议"
+  },
+  "ai_agent_workflows.md": {
+    "domain": "ai", "title": "Agent 工作流", "tags": ["Agent", "编排", "工具调用"],
+    "references": ["https://docs.langchain.com/oss/python/langgraph/workflows-agents"],
+    "reviewed_at": "2026-11-04", "kind": "官方概念摘要与项目辅导建议"
+  },
+  "backend_system_design.md": {
+    "domain": "backend", "title": "后端工程", "tags": ["MySQL", "Redis", "FastAPI"],
+    "references": ["https://dev.mysql.com/doc/refman/8.4/en/explain.html", "https://redis.io/docs/latest/develop/use-cases/cache-aside/", "https://fastapi.tiangolo.com/async/"],
+    "reviewed_at": "2026-11-04", "kind": "官方概念摘要与项目辅导建议"
+  },
+  "frontend_engineering.md": {
+    "domain": "frontend", "title": "前端工程", "tags": ["React", "状态管理", "可访问性"],
+    "references": ["https://react.dev/learn/thinking-in-react", "https://www.w3.org/WAI/tutorials/forms/labels/"],
+    "reviewed_at": "2026-11-04", "kind": "官方概念摘要与项目辅导建议"
+  },
+  "resume_evidence_playbook.md": {
+    "domain": "general", "title": "简历证据手册", "tags": ["STAR", "应届生", "转岗", "证据"],
+    "references": [], "reviewed_at": "2026-11-04", "kind": "项目维护者编写的辅导规则"
+  }
+}

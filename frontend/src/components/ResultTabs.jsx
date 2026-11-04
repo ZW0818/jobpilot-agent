@@ -6,6 +6,7 @@ const TABS = [
   { id: "evidence", label: "匹配证据" },
   { id: "rewrite", label: "简历优化" },
   { id: "interview", label: "面试准备" },
+  { id: "knowledge", label: "知识来源" },
   { id: "json", label: "原始数据" },
 ];
 
@@ -69,7 +70,7 @@ function EvidencePanel({ items = [] }) {
             </div>
             <div>
               <span className={`status-badge ${item.status || "missing"}`}>
-                {item.status || "missing"}
+                {{ matched: "已匹配", partial: "部分覆盖", missing: "未找到证据" }[item.status] || "未找到证据"}
               </span>
             </div>
             <p>{item.suggestion || "暂无建议。"}</p>
@@ -91,7 +92,7 @@ function ResultSummary({ match, rewrite }) {
   return (
     <section className="result-summary-card">
       <div>
-        <p className="section-kicker">结果摘要</p>
+        <h2>本次匹配结论</h2>
         <h3>{level}</h3>
         <span>综合匹配分：{score}/100</span>
       </div>
@@ -110,7 +111,7 @@ export default function ResultTabs({ result, isLoading = false }) {
   const rewrite = result?.rewrite_result || {};
   const match = result?.match_result || {};
 
-  if (isLoading) {
+  if (isLoading && !result) {
     return (
       <div className="result-shell loading-shell" aria-live="polite">
         <div className="loading-copy">
@@ -138,6 +139,9 @@ export default function ResultTabs({ result, isLoading = false }) {
   return (
     <div className="result-shell">
       <ResultSummary match={match} rewrite={rewrite} />
+      {result.warnings?.length ? (
+        <div className="chat-error" role="status">{result.warnings.join(" ")}</div>
+      ) : null}
 
       <div className="tab-list" role="tablist" aria-label="分析结果标签">
         {TABS.map((tab) => (
@@ -148,6 +152,15 @@ export default function ResultTabs({ result, isLoading = false }) {
             id={`tab-${tab.id}`}
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
+            onKeyDown={(event) => {
+              const index = TABS.findIndex((item) => item.id === tab.id);
+              const nextIndex = event.key === "ArrowRight" ? (index + 1) % TABS.length : event.key === "ArrowLeft" ? (index - 1 + TABS.length) % TABS.length : event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : null;
+              if (nextIndex !== null) {
+                event.preventDefault();
+                setActiveTab(TABS[nextIndex].id);
+                document.getElementById(`tab-${TABS[nextIndex].id}`)?.focus();
+              }
+            }}
             role="tab"
             tabIndex={activeTab === tab.id ? 0 : -1}
             type="button"
@@ -216,6 +229,25 @@ export default function ResultTabs({ result, isLoading = false }) {
             items={rewrite.interview_questions}
             title="面试准备问题"
           />
+        ) : null}
+
+        {activeTab === "knowledge" ? (
+          <section className="list-block">
+            <div className="block-heading">
+              <h3>本次分析的知识依据</h3>
+              <p>检索状态：{result.retrieval_status || "miss"}。以下内容用于方法参考，候选人能力以简历证据为准。</p>
+            </div>
+            {result.knowledge_evidence?.length ? result.knowledge_evidence.map((chunk) => (
+              <article className="list-block" key={chunk.chunk_id}>
+                <strong>{chunk.section || chunk.source}</strong>
+                <p className="muted-text">{chunk.source} · {chunk.chunk_id}</p>
+                <p>{chunk.content}</p>
+                {chunk.references?.map((url) => (
+                  <p key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></p>
+                ))}
+              </article>
+            )) : <p className="muted-text">未找到相关知识片段。</p>}
+          </section>
         ) : null}
 
         {activeTab === "json" ? (

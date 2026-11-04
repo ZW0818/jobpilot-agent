@@ -1,6 +1,7 @@
 from io import BytesIO
 
 from fastapi import UploadFile
+from starlette.concurrency import run_in_threadpool
 
 
 async def extract_text_from_upload(upload: UploadFile) -> str:
@@ -8,9 +9,9 @@ async def extract_text_from_upload(upload: UploadFile) -> str:
     filename = (upload.filename or "").lower()
 
     if filename.endswith(".pdf"):
-        return _extract_pdf_text(content)
+        return await run_in_threadpool(_extract_pdf_text, content)
     if filename.endswith(".docx"):
-        return _extract_docx_text(content)
+        return await run_in_threadpool(_extract_docx_text, content)
     return _decode_text(content)
 
 

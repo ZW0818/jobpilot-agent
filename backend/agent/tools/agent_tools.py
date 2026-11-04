@@ -37,6 +37,17 @@ COMMON_SKILLS = [
     "Embedding",
     "Webpack",
     "Vite",
+    "Go",
+    "C++",
+    "pytest",
+    "CI/CD",
+    "Elasticsearch",
+    "Nginx",
+    "Node.js",
+    "Next.js",
+    "LangGraph",
+    "BM25",
+    "Rerank",
 ]
 
 
@@ -77,9 +88,19 @@ def unique_preserve_order(items: list[str]) -> list[str]:
 
 
 def extract_known_skills(text: str) -> list[str]:
-    lowered = (text or "").lower()
-    hits = [skill for skill in COMMON_SKILLS if skill.lower() in lowered]
+    hits = [skill for skill in COMMON_SKILLS if contains_term(skill, text)]
     return unique_preserve_order(hits)
+
+
+def contains_term(term: str, text: str) -> bool:
+    """Match technology names without treating JavaScript as Java or GitHub as Git."""
+    if not term.strip():
+        return False
+    if term.casefold() == "react":
+        return bool(re.search(r"(?<![a-zA-Z0-9_])(?:React|react|REACT)(?![a-zA-Z0-9_])", text))
+    if re.search(r"[a-zA-Z]", term):
+        return bool(re.search(rf"(?<![a-zA-Z0-9_]){re.escape(term)}(?![a-zA-Z0-9_+#])", text, re.I))
+    return term.casefold() in text.casefold()
 
 
 def extract_bullets(text: str, limit: int = 8) -> list[str]:

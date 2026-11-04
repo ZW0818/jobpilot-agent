@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { askCareerQuestion } from "../api";
+import MarkdownPreview from "./MarkdownPreview";
 
 const QUICK_PROMPTS = [
   "AI Agent 岗位面试应该重点准备什么？",
@@ -20,8 +21,8 @@ export default function CareerChatPanel() {
   const [messages, setMessages] = useState([
     {
       role: "assistant",
-      content: "你可以问我简历优化、岗位匹配、面试准备、项目包装和投递策略。我会先检索本地知识库，找不到依据时不会编造答案。",
-      meta: "KnowledgeSearchAgent 待命",
+      content: "想准备哪个岗位？你可以问我简历表达、项目复盘和面试准备。我会结合知识资料回答，资料不足时会明确说明。",
+      meta: "选择一个常见问题，或输入你的具体场景。",
     },
   ]);
   const [question, setQuestion] = useState("");
@@ -34,7 +35,7 @@ export default function CareerChatPanel() {
       messages
         .filter((message) => message.role === "user" || message.role === "assistant")
         .slice(-8)
-        .map((message) => ({ role: message.role, content: message.content })),
+        .map((message) => ({ role: message.role, content: message.content.slice(0, 2000) })),
     [messages],
   );
 
@@ -61,6 +62,7 @@ export default function CareerChatPanel() {
               ? "知识库未命中，已拒绝自由发挥"
               : `来源：${response.sources?.join("、") || "本地知识库"}`,
           logs: response.agent_logs || [],
+          evidence: response.knowledge_evidence || [],
         },
       ]);
     } catch (requestError) {
@@ -80,21 +82,33 @@ export default function CareerChatPanel() {
     <section className="chat-panel" aria-busy={isAsking}>
       <div className="chat-heading">
         <div>
-          <p className="section-kicker">求职问答</p>
-          <h2>和知识库对话</h2>
+          <h2>对话记录</h2>
         </div>
-        <span className="secure-pill">RAG 先检索再回答</span>
+        <span className="muted-text">回答附知识来源</span>
       </div>
 
       <div className="chat-layout">
-        <div className="chat-messages" aria-live="polite">
+        <div className={`chat-messages ${messages.length === 1 ? "is-first-run" : ""}`} aria-live="polite">
           {messages.map((message, index) => (
             <article className={`chat-message ${message.role}`} key={`${message.role}-${index}`}>
               <div className="chat-bubble">
                 <span className="chat-role">{message.role === "user" ? "你" : "JobPilot"}</span>
-                <p>{message.content}</p>
+                {message.role === "assistant" ? <MarkdownPreview markdown={message.content} compact/> : <p>{message.content}</p>}
                 {message.meta ? <small>{message.meta}</small> : null}
               </div>
+              {message.evidence?.length ? (
+                <details className="chat-agent-logs">
+                  <summary>查看知识片段与来源</summary>
+                  {message.evidence.map((chunk) => (
+                    <div key={chunk.chunk_id}>
+                      <strong>{chunk.section || chunk.source}</strong>
+                      <p>{chunk.content}</p>
+                      <small>{chunk.source}#{chunk.chunk_id}</small>
+                      {chunk.references?.map((url) => <p key={url}><a href={url} target="_blank" rel="noreferrer">{url}</a></p>)}
+                    </div>
+                  ))}
+                </details>
+              ) : null}
               {message.logs?.length ? (
                 <details className="chat-agent-logs">
                   <summary>查看智能体链路</summary>
@@ -119,6 +133,7 @@ export default function CareerChatPanel() {
 
         <div className="chat-side">
           <div className="quick-prompts" aria-label="推荐问题">
+            <h3>常见问题</h3>
             {QUICK_PROMPTS.map((prompt) => (
               <button disabled={isAsking} key={prompt} onClick={() => submitQuestion(prompt)} type="button">
                 {prompt}
@@ -130,12 +145,14 @@ export default function CareerChatPanel() {
             <span>输入你的求职问题</span>
             <textarea
               disabled={isAsking}
+              maxLength={1000}
               onChange={(event) => setQuestion(event.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="例如：RAG 项目经历在简历里怎么描述更有说服力？"
               value={question}
             />
           </label>
+          <small className="composer-hint">Ctrl / ⌘ + Enter 发送 · {question.length}/1000 字</small>
 
           {error ? (
             <div className="chat-error" role="alert">

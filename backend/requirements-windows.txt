@@ -1,0 +1,7 @@
+-r requirements.txt
+
+# Verified local Windows SegmentAPI stack; uses chroma-hnswlib instead of Rust HNSW.
+chromadb==1.5.9
+langchain-chroma==1.1.0
+chroma-hnswlib==0.7.6; sys_platform == "win32"
+numpy==1.26.4; sys_platform == "win32"

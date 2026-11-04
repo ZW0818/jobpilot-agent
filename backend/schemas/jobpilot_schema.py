@@ -56,6 +56,25 @@ class RewriteResult(BaseModel):
     interview_questions: list[str] = Field(default_factory=list)
 
 
+class AgentTrace(BaseModel):
+    stage: str
+    status: str = Field(default="success", pattern="^(success|fallback|skipped)$")
+    mode: str = "rules"
+    duration_ms: float = Field(default=0.0, ge=0.0)
+    message: str = ""
+    warnings: list[str] = Field(default_factory=list)
+
+
+class KnowledgeEvidence(BaseModel):
+    source: str
+    chunk_id: str
+    section: str = ""
+    content: str = ""
+    score: float = 0.0
+    domain: str = "general"
+    references: list[str] = Field(default_factory=list)
+
+
 class JobPilotResult(BaseModel):
     resume_info: ResumeInfo
     jd_info: JDInfo
@@ -64,6 +83,10 @@ class JobPilotResult(BaseModel):
     rewrite_result: RewriteResult
     markdown_report: str
     agent_logs: list[str] = Field(default_factory=list)
+    agent_traces: list[AgentTrace] = Field(default_factory=list)
+    retrieval_status: str = "miss"
+    knowledge_evidence: list[KnowledgeEvidence] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
 
 
 class ChatMessage(BaseModel):
@@ -83,3 +106,4 @@ class CareerChatResponse(BaseModel):
     sources: list[str] = Field(default_factory=list)
     agent_logs: list[str] = Field(default_factory=list)
     used_model: bool = False
+    knowledge_evidence: list[KnowledgeEvidence] = Field(default_factory=list)

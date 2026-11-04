@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.pyc
@@ -8,9 +10,11 @@ __pycache__/
 .compile_cache/
 chroma_db/
 backend/chroma_db/
+backend/chroma_db_segment/
 backend/md5.txt
 backend/uploads/
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 .idea/
+.taste-skill/

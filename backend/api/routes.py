@@ -1,4 +1,5 @@
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from schemas.jobpilot_schema import CareerChatRequest, CareerChatResponse, JobPilotResult
 from services.career_chat_service import CareerChatService
@@ -22,11 +23,11 @@ async def analyze_resume(
         raise HTTPException(status_code=400, detail="resume_file did not contain readable text.")
 
     supervisor = SupervisorService()
-    return supervisor.run(resume_text=resume_text, jd_text=jd_text)
+    return await run_in_threadpool(supervisor.run, resume_text=resume_text, jd_text=jd_text)
 
 
 @router.post("/chat", response_model=CareerChatResponse)
-async def career_chat(payload: CareerChatRequest) -> CareerChatResponse:
+def career_chat(payload: CareerChatRequest) -> CareerChatResponse:
     question = payload.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="question is required.")

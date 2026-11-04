@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { analyzeJob } from "./api";
 import UploadPanel from "./components/UploadPanel";
 import ScoreCard from "./components/ScoreCard";
@@ -9,26 +9,21 @@ import CareerChatPanel from "./components/CareerChatPanel";
 const SAMPLE_JD = `岗位：AI Agent 应用开发工程师
 职责：
 - 构建 LangChain Agent 与 RAG 应用。
-- 开发 FastAPI 后端服务与 React 前端界面。
-- 设计 Tool Calling、结构化输出和本地知识库检索能力。
+- 开发 FastAPI 服务，设计工具调用和结构化输出。
 要求：
-- 熟悉 Python、FastAPI、LangChain、RAG、Chroma、React、Prompt Engineering。
-- 有端到端 AI 应用交付经验优先。
+- 熟悉 Python、FastAPI、LangChain、RAG 和向量数据库。
+- 能用测试集验证检索质量，处理模型调用失败。
 加分项：
-- 了解简历解析、岗位画像、候选人评估等招聘场景。
-- 能把模型能力封装成稳定可复用的产品功能。`;
+- 有 Docker 部署和端到端应用交付经验。`;
 
-function buildErrorMessage(error) {
-  const detail = error?.response?.data?.detail;
-  if (detail) {
-    return typeof detail === "string" ? detail : JSON.stringify(detail);
-  }
-  return error?.message || "分析请求失败，请确认本地后端服务已启动。";
-}
+const VIEWS = [
+  { id: "workspace", label: "岗位匹配", description: "把目标岗位的要求，与简历中的实际证据逐项对照。", path: "M4 5h16v14H4z M8 3v4 M16 3v4 M8 11h8 M8 15h5" },
+  { id: "report", label: "分析报告", description: "核对匹配依据、能力缺口与简历改写建议。", path: "M7 3h7l4 4v14H7z M14 3v5h4 M10 12h5 M10 16h5" },
+  { id: "chat", label: "求职问答", description: "从岗位准备到项目表达，结合知识资料继续追问。", path: "M4 4h16v12H9l-5 4z M8 8h8 M8 12h5" },
+];
 
 function downloadMarkdown(markdown) {
-  const blob = new Blob([markdown || ""], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
+  const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown;charset=utf-8" }));
   const anchor = document.createElement("a");
   anchor.href = url;
   anchor.download = "jobpilot_report.md";
@@ -37,163 +32,92 @@ function downloadMarkdown(markdown) {
 }
 
 export default function App() {
+  const [activeView, setActiveView] = useState("workspace");
   const [resumeFile, setResumeFile] = useState(null);
   const [jdText, setJdText] = useState("");
   const [result, setResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
+  const [updatedAt, setUpdatedAt] = useState(null);
+  const view = VIEWS.find((item) => item.id === activeView);
   const canAnalyze = Boolean(resumeFile && jdText.trim() && !isLoading);
-  const match = useMemo(() => result?.match_result || {}, [result]);
-  const hasResult = Boolean(result);
-  const matchedCount = match.matched_points?.length || 0;
-  const missingCount = match.missing_points?.length || 0;
-  const heroStatus = isLoading ? "正在分析" : hasResult ? match.level || "已生成报告" : "等待分析";
-  const heroScore = hasResult ? match.score ?? "--" : "--";
+  const timestamp = updatedAt?.toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit" });
 
   async function handleAnalyze() {
-    if (!resumeFile || !jdText.trim()) {
-      setError("请先上传简历文件，并粘贴完整的目标岗位 JD。");
-      return;
-    }
-
+    if (!canAnalyze) return;
     setIsLoading(true);
     setError("");
-
     try {
-      setResult(await analyzeJob(resumeFile, jdText));
+      const nextResult = await analyzeJob(resumeFile, jdText);
+      setResult(nextResult);
+      setUpdatedAt(new Date());
     } catch (requestError) {
-      setError(buildErrorMessage(requestError));
+      const detail = requestError?.response?.data?.detail;
+      setError(typeof detail === "string" ? detail : requestError.message || "分析失败，请检查后端服务后重试。");
     } finally {
       setIsLoading(false);
     }
   }
 
+  function useSample() {
+    setJdText(SAMPLE_JD);
+    document.getElementById("jd-text")?.focus();
+  }
+
   return (
-    <main className="app-shell">
-      <header className="topbar">
-        <div className="brand-mark">
-          <span className="brand-logo">职</span>
-          <div>
-            <strong>JobPilot 求职分析台</strong>
-            <small>多智能体岗位匹配系统</small>
-          </div>
-        </div>
-        <div className="topbar-status">
-          <span className="live-dot" />
-          本地后端服务
-        </div>
-      </header>
-
-      <section className="hero-section">
-        <div className="hero-copy">
-          <div className="eyebrow">
-            <span className="status-dot" />
-            多智能体求职决策系统
-          </div>
-          <h1>把简历和岗位 JD，转化为一份可行动的匹配分析报告。</h1>
-          <p>
-            JobPilot 会串联 ProfileAgent、KnowledgeAgent、EvaluationAgent 与 CoachAgent 四个角色，
-            帮你判断是否值得投递，并明确投递前应该补强什么。
-          </p>
-
-          <div className="hero-actions">
-            <a className="hero-link primary-link" href="#workspace">
-              开始分析
-            </a>
-            <button className="hero-link subtle-link" onClick={() => setJdText(SAMPLE_JD)} type="button">
-              使用示例岗位
+    <div className="app-frame">
+      <a className="skip-link" href="#main-content">跳转到工作区</a>
+      <aside className="navigation-rail" aria-label="应用导航">
+        <a className="product-mark" href="#workspace" onClick={() => setActiveView("workspace")} aria-label="JobPilot 首页" title="JobPilot">
+          <svg viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M4 5 24 13 15 16 11 24 4 5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round"/><path d="m4 5 11 11" stroke="currentColor" strokeWidth="1.7"/></svg>
+        </a>
+        <nav>
+          {VIEWS.map((item) => (
+            <button key={item.id} className={`nav-item ${activeView === item.id ? "selected" : ""}`} aria-current={activeView === item.id ? "page" : undefined} onClick={() => setActiveView(item.id)} title={item.label} type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={item.path}/></svg>
+              <span>{item.label}</span>
             </button>
-          </div>
+          ))}
+        </nav>
+        <span className="rail-caption" aria-hidden="true">JP</span>
+      </aside>
 
-          <div className="hero-metrics" aria-label="产品能力">
-            <span>候选人画像</span>
-            <span>岗位要求拆解</span>
-            <span>匹配证据归纳</span>
-            <span>匹配评分</span>
-            <span>投递策略建议</span>
-          </div>
+      <main className="app-shell" id="main-content" tabIndex={-1}>
+        <header className="workspace-bar">
+          <a className="wordmark" href="#workspace" onClick={() => setActiveView("workspace")}>JobPilot<span>求职工作区</span></a>
+          <span className="workspace-scope">简历 · 岗位 · 证据</span>
+        </header>
+        <div className="page-heading">
+          <div><h1>{view.label}</h1><p>{view.description}</p></div>
+          {activeView === "report" ? (
+            <button className="secondary-action" disabled={!result?.markdown_report} onClick={() => downloadMarkdown(result.markdown_report)} type="button">下载 Markdown</button>
+          ) : timestamp ? <span className="freshness">上次生成 {timestamp}</span> : <span className="freshness">尚未提交分析</span>}
         </div>
 
-        <aside className="hero-card" aria-label="分析状态">
-          <div className="orbit-card">
-            <div className="radar-ring">
-              <span>{isLoading ? "..." : heroScore}</span>
+        <div hidden={activeView !== "workspace"}>
+          <section className="workspace-grid" aria-busy={isLoading} aria-label="岗位匹配工作台">
+            <div className="materials-column">
+              <UploadPanel resumeFile={resumeFile} jdText={jdText} isLoading={isLoading} canAnalyze={canAnalyze} onFileChange={setResumeFile} onJdChange={setJdText} onAnalyze={handleAnalyze} onUseSample={useSample} error={error}/>
+              <div className="report-entry">
+                <div><strong>{result ? "本次分析报告已就绪" : "从要求到证据，再到行动"}</strong><p>{result ? "查看逐项匹配、优化建议、面试问题与知识来源。" : "匹配结果会同时保留岗位要求、简历依据和下一步建议。"}</p></div>
+                <button className="text-action" type="button" onClick={() => setActiveView("report")}>{result ? "查看报告" : "报告工作区"}<span aria-hidden="true"> →</span></button>
+              </div>
             </div>
-            <p>{heroStatus}</p>
-          </div>
-          <div className="hero-mini-grid">
-            {hasResult ? (
-              <>
-                <span>{matchedCount} 项优势</span>
-                <span>{missingCount} 项缺口</span>
-              </>
-            ) : (
-              <>
-                <span>4 个智能体角色</span>
-                <span>1 份求职报告</span>
-              </>
-            )}
-          </div>
-        </aside>
-      </section>
-
-      <section className="process-strip" aria-label="分析流程">
-        <span>01 上传简历</span>
-        <span>02 粘贴岗位 JD</span>
-        <span>03 多智能体分析</span>
-        <span>04 查看报告与建议</span>
-      </section>
-
-      <CareerChatPanel />
-
-      <section aria-busy={isLoading} className="workspace-grid" id="workspace">
-        <UploadPanel
-          resumeFile={resumeFile}
-          jdText={jdText}
-          isLoading={isLoading}
-          canAnalyze={canAnalyze}
-          onFileChange={setResumeFile}
-          onJdChange={setJdText}
-          onAnalyze={handleAnalyze}
-          onUseSample={() => setJdText(SAMPLE_JD)}
-        />
-
-        <aside className="insight-rail">
-          <ScoreCard
-            result={result?.match_result}
-            jobClassification={result?.job_classification}
-            isLoading={isLoading}
-          />
-          <AgentTimeline logs={result?.agent_logs} isLoading={isLoading} />
-        </aside>
-      </section>
-
-      {error ? (
-        <div className="error-banner" role="alert">
-          <strong>分析失败</strong>
-          <span>{error}</span>
+            <aside className="insight-rail" aria-label="匹配结果摘要">
+              <ScoreCard result={result?.match_result} jobClassification={result?.job_classification} isLoading={isLoading}/>
+              <AgentTimeline logs={result?.agent_logs} traces={result?.agent_traces} isLoading={isLoading}/>
+            </aside>
+          </section>
         </div>
-      ) : null}
 
-      <section className="results-section">
-        <div className="section-heading">
-          <div>
-            <p className="section-kicker">分析结果</p>
-            <h2>求职匹配结果</h2>
-          </div>
-          <button
-            className="secondary-action"
-            disabled={!result?.markdown_report}
-            onClick={() => downloadMarkdown(result?.markdown_report)}
-            title={result?.markdown_report ? "下载完整分析报告" : "分析完成后可下载报告"}
-            type="button"
-          >
-            下载分析报告
-          </button>
-        </div>
-        <ResultTabs result={result} isLoading={isLoading} />
-      </section>
-    </main>
+        <section hidden={activeView !== "report"} aria-label="分析报告内容">
+          {!result && !isLoading ? (
+            <div className="empty-report"><h2>还没有分析报告</h2><p>上传一份简历和目标岗位 JD，生成带匹配证据的求职分析。</p><button className="primary-action" onClick={() => setActiveView("workspace")} type="button">添加分析材料</button></div>
+          ) : <ResultTabs result={result} isLoading={isLoading}/>}
+        </section>
+        <div hidden={activeView !== "chat"}><CareerChatPanel/></div>
+        <footer className="workspace-footer"><span>JobPilot</span><span>建议基于真实经历修改，评分供投递准备参考。</span></footer>
+      </main>
+    </div>
   );
 }

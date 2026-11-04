@@ -1,112 +1,20 @@
-function getScoreTone(score) {
-  if (score >= 85) return "excellent";
-  if (score >= 70) return "good";
-  if (score >= 50) return "medium";
-  return "low";
-}
-
-function getScoreAdvice(score, hasResult) {
-  if (!hasResult) return "完成一次分析后，这里会展示岗位匹配指数与投递建议。";
-  if (score >= 85) return "匹配度很高，建议优先投递，并在简历中突出与岗位强相关的项目成果。";
-  if (score >= 70) return "具备较好的投递基础，建议先补强关键缺口再投递。";
-  if (score >= 50) return "存在一定匹配基础，但需要围绕岗位要求重写摘要、技能和项目经历。";
-  return "当前匹配度偏低，建议谨慎投递，优先补齐岗位核心能力或选择更贴合的岗位。";
-}
-
-const SCORE_DETAIL_LABELS = [
-  ["skill_match", "核心技能", 40],
-  ["project_relevance", "项目相关", 30],
-  ["engineering_ability", "工程能力", 20],
-  ["resume_quality", "表达完整", 10],
-];
-
-const DOMAIN_LABELS = {
-  ai: "AI 岗位",
-  backend: "后端岗位",
-  frontend: "前端岗位",
-  general: "通用岗位",
-};
+const METRICS = [["skill_match", "核心技能", 40], ["project_relevance", "项目相关", 30], ["engineering_ability", "工程能力", 20], ["resume_quality", "表达完整", 10]];
+const DOMAINS = { ai: "AI 应用", backend: "后端开发", frontend: "前端开发", general: "通用岗位" };
 
 export default function ScoreCard({ result, jobClassification, isLoading = false }) {
   const hasResult = Boolean(result);
-  const score = Number(result?.score || 0);
-  const level = result?.level || (isLoading ? "评估中..." : "暂无评分");
-  const tone = getScoreTone(score);
-  const matched = result?.matched_points || [];
-  const missing = result?.missing_points || [];
-  const suggestions = result?.suggestions || [];
-  const scoreDetail = result?.score_detail || {};
-  const classification = jobClassification || {};
-  const advice = isLoading ? "正在综合简历信息、岗位要求和知识库证据，请稍候。" : getScoreAdvice(score, hasResult);
-
+  const score = result?.score ?? 0;
   return (
-    <section className={`score-card ${tone}`}>
-      <div className="card-heading">
-        <p className="section-kicker">匹配评分</p>
-        <h3>岗位匹配度</h3>
+    <section className="score-card" aria-busy={isLoading}>
+      <div className="panel-heading"><h2>匹配概览</h2><span>{isLoading ? "更新中" : hasResult ? DOMAINS[jobClassification?.domain] || "通用岗位" : "待分析"}</span></div>
+      <div className={`score-headline ${hasResult ? "" : "no-score"}`}><strong>{hasResult ? score : "—"}</strong>{hasResult ? <span>/ 100</span> : <span>提交材料后生成</span>}</div>
+      <p className="score-level">{hasResult ? result.level : "先找到简历与岗位的连接点"}</p>
+      <p className="score-advice">{isLoading ? "保留上次结果，报告完成后更新。" : "评分依据简历证据，知识资料只作为改进参考。"}</p>
+      <div className="score-breakdown" aria-label="分项评分">
+        {METRICS.map(([key, label, max]) => <div className="score-metric" key={key}><div><span>{label}</span><span className="metric-value">{hasResult ? result.score_detail?.[key] ?? 0 : "—"}<small> / {max}</small></span></div><div className="metric-track" aria-hidden="true"><span style={{ width: `${hasResult ? (result.score_detail?.[key] ?? 0) / max * 100 : 0}%` }}/></div></div>)}
       </div>
-
-      <div className="score-meter" style={{ "--score": `${score}%` }}>
-        <div className="score-value">
-          <strong>{isLoading ? "..." : score}</strong>
-          <span>/100</span>
-        </div>
-      </div>
-
-      <div className="score-level">{level}</div>
-      {hasResult ? (
-        <div className="classification-pill" title={classification.reason || "暂无识别原因"}>
-          <span>{DOMAIN_LABELS[classification.domain] || "通用岗位"}</span>
-          <strong>{Math.round(Number(classification.confidence || 0) * 100)}%</strong>
-        </div>
-      ) : null}
-      <p className="score-advice">{advice}</p>
-
-      {hasResult ? (
-        <div className="score-detail-grid" aria-label="分项评分">
-          {SCORE_DETAIL_LABELS.map(([key, label, max]) => (
-            <div key={key}>
-              <span className="mini-label">{label}</span>
-              <strong>
-                {Number(scoreDetail[key] || 0)}
-                <small>/{max}</small>
-              </strong>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="score-points">
-        <div>
-          <span className="mini-label">优势</span>
-          <strong>{matched.length}</strong>
-        </div>
-        <div>
-          <span className="mini-label">缺口</span>
-          <strong>{missing.length}</strong>
-        </div>
-        <div>
-          <span className="mini-label">建议</span>
-          <strong>{suggestions.length}</strong>
-        </div>
-      </div>
-
-      {hasResult && (matched[0] || missing[0]) ? (
-        <div className="score-evidence">
-          {matched[0] ? (
-            <p>
-              <span>主要优势</span>
-              {matched[0]}
-            </p>
-          ) : null}
-          {missing[0] ? (
-            <p>
-              <span>优先补强</span>
-              {missing[0]}
-            </p>
-          ) : null}
-        </div>
-      ) : null}
+      <div className="score-counts">{[["已匹配", "matched_points"], ["待补强", "missing_points"], ["行动建议", "suggestions"]].map(([label, key]) => <div key={key}><span>{label}</span><strong>{hasResult ? result[key]?.length ?? 0 : "—"}</strong></div>)}</div>
+      {hasResult ? <div className="score-evidence">{result.matched_points?.[0] ? <p><span>已覆盖</span>{result.matched_points[0]}</p> : null}{result.missing_points?.[0] ? <p><span>优先补强</span>{result.missing_points[0]}</p> : null}</div> : <div className="score-legend"><h3>证据判断方式</h3><dl><div><dt>已匹配</dt><dd>项目或工作经历中有明确佐证</dd></div><div><dt>部分覆盖</dt><dd>仅列出技能，或尚未覆盖完整要求</dd></div><div><dt>未找到证据</dt><dd>需要补充经历，不代表没有能力</dd></div></dl></div>}
     </section>
   );
 }

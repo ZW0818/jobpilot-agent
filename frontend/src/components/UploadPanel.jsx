@@ -1,71 +1,25 @@
-export default function UploadPanel({
-  resumeFile,
-  jdText,
-  isLoading,
-  canAnalyze,
-  onFileChange,
-  onJdChange,
-  onAnalyze,
-  onUseSample,
-}) {
+export default function UploadPanel({ resumeFile, jdText, isLoading, canAnalyze, onFileChange, onJdChange, onAnalyze, onUseSample, error }) {
   const jdLength = jdText.trim().length;
-  const hasResume = Boolean(resumeFile);
-  const hasJd = jdLength > 0;
-  const readinessText = hasResume && hasJd ? "材料已就绪，可以开始分析" : "请先补齐简历与岗位 JD";
-
   return (
     <section className="upload-panel">
-      <div className="panel-topline">
-        <div>
-          <p className="section-kicker">步骤 01</p>
-          <h2>输入候选人与岗位信息</h2>
-          <p className="panel-description">
-            建议上传最新版简历，并粘贴完整岗位职责、任职要求和加分项，匹配结论会更稳定。
-          </p>
-        </div>
-        <span className="secure-pill">本地服务处理</span>
+      <div className="panel-heading"><h2>分析材料</h2><span>{resumeFile && jdLength ? "材料已就绪" : "简历与岗位各一份"}</span></div>
+      <div className="resume-field">
+        <span className="field-label" id="resume-label">候选人简历</span>
+        <label className={`file-drop ${resumeFile ? "has-file" : ""}`}>
+          <input aria-labelledby="resume-label" aria-describedby="resume-formats" accept=".pdf,.docx,.txt,.md" disabled={isLoading} onChange={(event) => onFileChange(event.target.files?.[0] || null)} type="file"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M6 3h8l4 4v14H6z M14 3v5h4 M9 12h6 M9 16h6"/></svg>
+          <span className="file-description"><strong>{resumeFile?.name || "选择简历文件"}</strong><small id="resume-formats">{resumeFile ? `${(resumeFile.size / 1024).toFixed(1)} KB · 点击可更换` : "支持 PDF、DOCX、TXT、Markdown"}</small></span>
+          <span className="file-select" aria-hidden="true">{resumeFile ? "更换" : "浏览文件"}</span>
+        </label>
       </div>
-
-      <label className={`file-drop ${hasResume ? "has-file" : ""}`}>
-        <input
-          accept=".pdf,.doc,.docx,.txt,.md"
-          disabled={isLoading}
-          onChange={(event) => onFileChange(event.target.files?.[0] || null)}
-          type="file"
-        />
-        <span className="file-icon">简</span>
-        <span>
-          <strong>{resumeFile ? resumeFile.name : "上传简历文件"}</strong>
-          <small>
-            {resumeFile ? "已选择简历，将作为候选人画像输入。" : "支持 PDF、Word、TXT 和 Markdown。"}
-          </small>
-        </span>
-      </label>
-
-      <label className="jd-field">
-        <span>目标岗位 JD</span>
-        <textarea
-          disabled={isLoading}
-          onChange={(event) => onJdChange(event.target.value)}
-          placeholder="粘贴目标岗位、工作职责、技能要求、加分项等内容。内容越完整，岗位画像和缺口建议越准确。"
-          value={jdText}
-        />
-      </label>
-
-      <div className="input-insights" aria-label="输入状态">
-        <span className={hasResume ? "ready" : ""}>{hasResume ? "简历已上传" : "等待简历"}</span>
-        <span className={hasJd ? "ready" : ""}>{hasJd ? `JD 已输入 ${jdLength} 字` : "等待岗位 JD"}</span>
-        <span>{readinessText}</span>
+      <div className="jd-field">
+        <div className="field-heading"><label htmlFor="jd-text">目标岗位 JD</label><button className="text-action" disabled={isLoading} onClick={onUseSample} type="button">填入示例</button></div>
+        <textarea id="jd-text" disabled={isLoading} onChange={(event) => onJdChange(event.target.value)} placeholder={"粘贴岗位名称、职责、任职要求和加分项。\n保留完整要求，便于逐项核对简历证据。"} value={jdText} aria-describedby="jd-count"/>
+        <div className="field-footnote"><span>必备要求与加分项将分别评估</span><span id="jd-count">{jdLength.toLocaleString("zh-CN")} 字</span></div>
       </div>
-
-      <div className="form-actions">
-        <button className="ghost-action" disabled={isLoading} onClick={onUseSample} type="button">
-          使用示例岗位
-        </button>
-        <button className="primary-action" disabled={!canAnalyze} onClick={onAnalyze} type="button">
-          {isLoading ? "正在生成求职分析..." : "开始岗位匹配分析"}
-        </button>
-      </div>
+      <div className="submission-note" id="submission-note">简历将发送至已配置的模型服务用于本次分析，建议先移除与求职无关的敏感信息。</div>
+      {error ? <div className="inline-error" role="alert"><strong>本次分析未完成</strong><p>{error}</p></div> : null}
+      <div className="form-actions"><span aria-live="polite">{isLoading ? "正在核对材料并生成报告…" : canAnalyze ? "材料已就绪" : "请添加简历和目标岗位"}</span><button className="primary-action" disabled={!canAnalyze} aria-describedby="submission-note" onClick={onAnalyze} type="button">{isLoading ? "分析中…" : error ? "重新分析" : "生成匹配报告"}<span aria-hidden="true"> →</span></button></div>
     </section>
   );
 }

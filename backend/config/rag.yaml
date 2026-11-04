@@ -1,5 +1,7 @@
-chat_model_name: qwen-plus
-embedding_model_name: text-embedding-v4
+# Model names are read from environment variables by model/factory.py.
+vector_enabled: false
 top_k: 4
 chunk_size: 600
 chunk_overlap: 80
+context_max_chars: 5000
+max_chunks_per_source: 2

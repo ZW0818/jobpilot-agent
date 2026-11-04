@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from agent.tools.agent_tools import contains_term
 from schemas.jobpilot_schema import JobClassification
 
 
@@ -15,7 +16,6 @@ DOMAIN_RULES = (
     DomainRule(
         domain="ai",
         keywords=(
-            "Python",
             "PyTorch",
             "TensorFlow",
             "深度学习",
@@ -46,6 +46,10 @@ DOMAIN_RULES = (
             "高并发",
             "数据库",
             "FastAPI",
+            "Django",
+            "后端",
+            "backend",
+            "Golang",
         ),
     ),
     DomainRule(
@@ -70,14 +74,22 @@ class JobClassifierAgent:
     """Classify the target job direction with small deterministic rules."""
 
     def run(self, jd_text: str) -> JobClassification:
-        lowered = (jd_text or "").lower()
+        text = jd_text or ""
+        title = next((line for line in text.splitlines() if line.strip()), "")
         scores: dict[str, list[str]] = {}
 
         for rule in DOMAIN_RULES:
-            hits = [keyword for keyword in rule.keywords if keyword.lower() in lowered]
+            hits = [keyword for keyword in rule.keywords if contains_term(keyword, text)]
             scores[rule.domain] = hits
 
-        domain, hits = max(scores.items(), key=lambda item: (len(item[1]), item[0] == "ai"))
+        title_terms = {"ai": ("AI", "人工智能", "算法", "大模型", "机器学习", "Agent"),
+                       "backend": ("后端", "backend", "服务端"), "frontend": ("前端", "frontend")}
+        weights = {domain: len(hits) + 4 * any(contains_term(t, title) for t in title_terms[domain])
+                   for domain, hits in scores.items()}
+        domain = max(weights, key=weights.get)
+        hits = scores[domain]
+        if not hits and weights[domain]:
+            hits = [term for term in title_terms[domain] if contains_term(term, title)]
         if not hits:
             return JobClassification(
                 domain="general",
@@ -85,7 +97,8 @@ class JobClassifierAgent:
                 reason="JD 中未命中明确的 AI、后端或前端关键词，按通用岗位处理。",
             )
 
-        confidence = min(0.95, round(0.55 + len(hits) * 0.08, 2))
+        total = sum(weights.values())
+        confidence = min(0.95, round(0.45 + 0.5 * weights[domain] / max(total, 1), 2))
         return JobClassification(
             domain=domain,
             confidence=confidence,

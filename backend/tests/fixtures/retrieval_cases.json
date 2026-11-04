@@ -1,0 +1,20 @@
+[
+  {"question": "如何评估检索召回率和回答忠实度", "source": "ai_rag_engineering.md", "section": "检索评测与回答忠实度"},
+  {"question": "文档切分过大过小和知识库更新怎么处理", "source": "ai_rag_engineering.md", "section": "文档切分与知识库更新"},
+  {"question": "向量和关键词混合检索如何重排", "source": "ai_rag_engineering.md", "section": "混合检索与重排"},
+  {"question": "知识库没有答案时如何拒答", "source": "ai_rag_engineering.md", "section": "无答案处理与上下文边界"},
+  {"question": "哪些 Agent 节点可以并行执行和条件路由", "source": "ai_agent_workflows.md", "section": "并行执行与条件路由"},
+  {"question": "工具调用失败如何恢复，怎样避免无限循环", "source": "ai_agent_workflows.md", "section": "工具调用与失败恢复"},
+  {"question": "MySQL 慢查询怎么用 EXPLAIN 排查", "source": "backend_system_design.md", "section": "MySQL 慢查询与索引排查"},
+  {"question": "Redis 缓存一致性和热点过期怎么办", "source": "backend_system_design.md", "section": "Redis 缓存一致性与热点"},
+  {"question": "FastAPI async 接口为什么会阻塞事件循环", "source": "backend_system_design.md", "section": "FastAPI 同步调用与并发"},
+  {"question": "React 组件共享状态应该放在哪里", "source": "frontend_engineering.md", "section": "React 组件划分与状态管理"},
+  {"question": "前端旧请求覆盖新响应怎么处理", "source": "frontend_engineering.md", "section": "异步请求与页面状态"},
+  {"question": "表单 label 标签和输入如何关联", "source": "frontend_engineering.md", "section": "表单可访问性"},
+  {"question": "没有实习经历应届生简历怎么写", "source": "resume_evidence_playbook.md", "section": "无实习经历与应届生项目"},
+  {"question": "STAR 项目描述和量化指标怎么写", "source": "resume_evidence_playbook.md", "section": "STAR 项目描述与量化边界"},
+  {"question": "转岗如何描述可迁移能力", "source": "resume_evidence_playbook.md", "section": "转岗与投递准备"},
+  {"question": "明天北京天气预报", "source": null},
+  {"question": "量子纠缠实验如何设计", "source": null},
+  {"question": "加拿大旅游签证申请", "source": null}
+]

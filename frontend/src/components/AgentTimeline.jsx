@@ -1,45 +1,13 @@
-const LOADING_LOGS = [
-  "ProfileAgent 正在解析简历与岗位 JD，生成候选人与岗位画像。",
-  "KnowledgeAgent 正在检索本地求职知识库，补充评估依据。",
-  "EvaluationAgent 正在计算匹配评分，并归纳优势与能力缺口。",
-  "CoachAgent 正在生成简历优化、面试准备题和 Markdown 报告。",
-];
+const LABELS = { ProfileAgent: "画像解析", JobClassifierAgent: "岗位分类", KnowledgeAgent: "岗位知识检索", EvaluationAgent: "证据评分", GapKnowledgeAgent: "缺口知识补充", CoachAgent: "求职辅导" };
+const MODES = { model: "模型", rules: "规则", retrieval: "检索" };
+const STATUSES = { success: "完成", fallback: "已降级", skipped: "跳过" };
 
-export default function AgentTimeline({ logs = [], isLoading = false }) {
-  const hasLogs = Boolean(logs?.length);
-  const items = hasLogs ? logs : isLoading ? LOADING_LOGS : [];
-  const statusText = isLoading ? "分析进行中" : hasLogs ? "链路已完成" : "等待启动";
-
+export default function AgentTimeline({ logs = [], traces = [], isLoading = false }) {
   return (
-    <section className="timeline-card">
-      <div className="card-heading">
-        <p className="section-kicker">智能体链路</p>
-        <h3>执行过程</h3>
-      </div>
-
-      <div className="timeline-summary">
-        <span>{statusText}</span>
-        <small>{items.length ? `共 ${items.length} 个节点` : "提交材料后开始编排"}</small>
-      </div>
-
-      {items.length ? (
-        <ol className="agent-timeline">
-          {items.map((log, index) => {
-            const itemState = isLoading && index === 0 ? "active" : hasLogs ? "done" : "";
-            return (
-              <li className={itemState} key={`${log}-${index}`}>
-                <span>{String(index + 1).padStart(2, "0")}</span>
-                <p>{log}</p>
-              </li>
-            );
-          })}
-        </ol>
-      ) : (
-        <div className="empty-state compact">
-          <strong>暂无执行日志</strong>
-          <span>完成一次分析后，这里会展示四角色多智能体协作过程。</span>
-        </div>
-      )}
-    </section>
+    <details className="timeline-card">
+      <summary><span>执行记录</span><span>{isLoading ? "分析中" : traces.length ? `${traces.length} 个节点` : "尚未运行"}</span></summary>
+      {isLoading ? <p className="timeline-description">完整执行记录会随报告返回。</p> : null}
+      {traces.length ? <ol className="agent-timeline">{traces.map((trace) => <li key={trace.stage}><div><strong>{LABELS[trace.stage] || trace.stage}</strong><span>{Math.round(trace.duration_ms).toLocaleString("zh-CN")} ms</span></div><p>{MODES[trace.mode] || trace.mode} · {STATUSES[trace.status] || trace.status}</p>{trace.warnings?.map((warning) => <p className="trace-warning" key={warning}>{warning}</p>)}</li>)}</ol> : logs.length ? <ol className="agent-timeline">{logs.map((log, index) => <li key={index}>{log}</li>)}</ol> : <p className="timeline-description">完成分析后，可核对节点耗时、运行方式和降级原因。</p>}
+    </details>
   );
 }

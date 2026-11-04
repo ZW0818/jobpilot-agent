@@ -1,11 +1,11 @@
 agents:
   - ProfileAgent
+  - JobClassifierAgent
   - KnowledgeAgent
   - EvaluationAgent
   - CoachAgent
-mode: sequential
-fallback_enabled: true
+mode: dependency_workflow
+max_gap_queries: 2
 description: >
-  JobPilot uses four role-oriented agents. ProfileAgent parses resume and JD,
-  KnowledgeAgent retrieves local RAG context, EvaluationAgent scores fit and
-  gaps, and CoachAgent produces resume coaching, interview prep, and report.
+  Profile and classification run in parallel, followed by role retrieval,
+  evidence evaluation, bounded gap retrieval, and role-specific coaching.

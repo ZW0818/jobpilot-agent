@@ -1,10 +1,11 @@
 import re
 
+from agent.execution import record_fallback
 from agent.tools.agent_tools import extract_bullets, extract_known_skills, parse_json_output, summarize_text
 from agent.tools.middleware import log_step
 from model.factory import get_chat_model, has_dashscope_key
 from schemas.jobpilot_schema import JDInfo, ResumeInfo
-from utils.prompt_loader import load_prompt
+from utils.prompt_loader import load_structured_prompt
 
 
 class ProfileAgent:
@@ -17,17 +18,17 @@ class ProfileAgent:
     def _parse_resume(self, resume_text: str) -> ResumeInfo:
         if has_dashscope_key():
             try:
-                prompt = load_prompt("resume_prompt.txt")
+                prompt = load_structured_prompt("resume_prompt.txt", ResumeInfo)
                 response = get_chat_model().invoke([("system", prompt), ("user", resume_text)])
                 return ResumeInfo.model_validate(parse_json_output(getattr(response, "content", str(response))))
-            except Exception:
-                pass
+            except Exception as exc:
+                record_fallback("ProfileAgent.resume", exc)
         return self._parse_resume_fallback(resume_text)
 
     def _parse_resume_fallback(self, resume_text: str) -> ResumeInfo:
         lines = [line.strip() for line in resume_text.splitlines() if line.strip()]
         name = next((line for line in lines[:5] if 1 <= len(line) <= 40 and "@" not in line), "")
-        bullets = extract_bullets(resume_text)
+        bullets = extract_bullets(resume_text, limit=40)
         lowered_keywords = ("project", "agent", "rag", "system", "项目", "系统", "平台", "智能体")
         projects = [item for item in bullets if any(word in item.lower() for word in lowered_keywords)][:4]
         experience = [
@@ -52,11 +53,11 @@ class ProfileAgent:
     def _parse_jd(self, jd_text: str) -> JDInfo:
         if has_dashscope_key():
             try:
-                prompt = load_prompt("jd_prompt.txt")
+                prompt = load_structured_prompt("jd_prompt.txt", JDInfo)
                 response = get_chat_model().invoke([("system", prompt), ("user", jd_text)])
                 return JDInfo.model_validate(parse_json_output(getattr(response, "content", str(response))))
-            except Exception:
-                pass
+            except Exception as exc:
+                record_fallback("ProfileAgent.jd", exc)
         return self._parse_jd_fallback(jd_text)
 
     def _parse_jd_fallback(self, jd_text: str) -> JDInfo:
@@ -65,11 +66,25 @@ class ProfileAgent:
         title = re.sub(r"^(job|role|position|title|岗位|职位)\s*[:：-]\s*", "", first_line, flags=re.I)[:80]
         bullets = extract_bullets(jd_text, limit=12)
         keywords = extract_known_skills(jd_text)
-        required = [
-            item
-            for item in bullets
-            if any(word in item.lower() for word in ("require", "must", "familiar", "skill", "要求", "熟悉", "掌握"))
-        ][:5]
+        preferred, required = [], []
+        section = ""
+        for raw_line in lines[1:]:
+            line = raw_line.strip().lstrip("-* ")
+            if re.fullmatch(r"(?:任职要求|岗位要求|要求|requirements|must have)\s*[:：]?", line, re.I):
+                section = "required"
+                continue
+            if re.fullmatch(r"(?:加分项|优先条件|preferred|nice to have)\s*[:：]?", line, re.I):
+                section = "preferred"
+                continue
+            if re.fullmatch(r"(?:岗位职责|工作职责|职责|responsibilities)\s*[:：]?", line, re.I):
+                section = "responsibilities"
+                continue
+            if section == "preferred" or any(word in line.lower() for word in ("preferred", "nice to have", "优先", "加分")):
+                preferred.append(line)
+            elif section == "required" or any(word in line.lower() for word in ("require", "must", "familiar", "熟悉", "掌握")):
+                required.append(line)
+        preferred_skills = extract_known_skills(" ".join(preferred))
+        required_skills = extract_known_skills(" ".join(required))
         responsibilities = [
             item
             for item in bullets
@@ -77,8 +92,8 @@ class ProfileAgent:
         ][:5]
         return JDInfo(
             job_title=title,
-            required_skills=required or keywords[:6],
-            preferred_skills=keywords[6:12],
+            required_skills=required[:8] or [skill for skill in keywords if skill not in preferred_skills],
+            preferred_skills=[skill for skill in preferred_skills if skill not in required_skills],
             responsibilities=responsibilities,
             keywords=keywords,
             summary=summarize_text(jd_text),

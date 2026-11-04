@@ -1,8 +1,6 @@
-from agent.tools.agent_tools import extract_known_skills, parse_json_output, unique_preserve_order
+from agent.tools.agent_tools import contains_term, extract_known_skills, unique_preserve_order
 from agent.tools.middleware import log_step
-from model.factory import get_chat_model, has_dashscope_key
 from schemas.jobpilot_schema import EvidenceItem, JDInfo, JobClassification, MatchResult, ResumeInfo, ScoreDetail
-from utils.prompt_loader import load_prompt
 
 
 class EvaluationAgent:
@@ -16,20 +14,7 @@ class EvaluationAgent:
         rag_context: str,
         job_classification: JobClassification | None = None,
     ) -> MatchResult:
-        if has_dashscope_key():
-            try:
-                prompt = load_prompt("match_prompt.txt")
-                payload = {
-                    "resume_info": resume_info.model_dump(),
-                    "jd_info": jd_info.model_dump(),
-                    "job_classification": job_classification.model_dump() if job_classification else {},
-                    "rag_context": rag_context,
-                }
-                response = get_chat_model().invoke([("system", prompt), ("user", str(payload))])
-                result = MatchResult.model_validate(parse_json_output(getattr(response, "content", str(response))))
-                return self._with_deterministic_details(result, resume_info, jd_info, job_classification)
-            except Exception:
-                pass
+        # Scores and evidence use resume/JD only; reference documents cannot prove candidate skills.
         return self._run_fallback(resume_info, jd_info, job_classification)
 
     def _run_fallback(
@@ -38,21 +23,7 @@ class EvaluationAgent:
         jd_info: JDInfo,
         job_classification: JobClassification | None = None,
     ) -> MatchResult:
-        resume_terms = self._resume_blob(resume_info)
-        jd_terms = unique_preserve_order(jd_info.keywords + jd_info.required_skills)
-        matched = [term for term in jd_terms if term and term.lower() in resume_terms]
-        missing = [term for term in jd_terms if term and term.lower() not in resume_terms]
-
-        suggestions = ["在简历摘要和项目经历中补充与 JD 对齐的关键词。"]
-        if missing:
-            suggestions.insert(0, "优先补充这些能力证据：" + ", ".join(missing[:5]))
-
-        result = MatchResult(
-            matched_points=[f"已覆盖：{item}" for item in matched[:8]],
-            missing_points=[f"缺少证据：{item}" for item in missing[:8]],
-            suggestions=suggestions,
-        )
-        return self._with_deterministic_details(result, resume_info, jd_info, job_classification)
+        return self._with_deterministic_details(MatchResult(), resume_info, jd_info, job_classification)
 
     def _with_deterministic_details(
         self,
@@ -71,22 +42,15 @@ class EvaluationAgent:
         result.level = self._level_for_score(result.score)
         result.evidence_items = self._build_evidence_items(resume_info, jd_info)
 
-        if not result.matched_points:
-            result.matched_points = [
-                f"已覆盖：{item.jd_requirement}"
-                for item in result.evidence_items
-                if item.status == "matched"
-            ][:8]
-        if not result.missing_points:
-            result.missing_points = [
-                f"缺少证据：{item.jd_requirement}"
-                for item in result.evidence_items
-                if item.status == "missing"
-            ][:8]
-        if not result.suggestions:
-            result.suggestions = unique_preserve_order([item.suggestion for item in result.evidence_items if item.suggestion])[
-                :8
-            ]
+        result.matched_points = [
+            f"已覆盖：{item.jd_requirement}" for item in result.evidence_items if item.status == "matched"
+        ][:8]
+        result.missing_points = [
+            f"{'缺少证据' if item.status == 'missing' else '证据待补强'}：{item.jd_requirement}"
+            for item in result.evidence_items if item.status != "matched"
+        ][:8]
+        result.suggestions = unique_preserve_order([item.suggestion for item in result.evidence_items if item.status != "matched"]
+                                                  + [item.suggestion for item in result.evidence_items if item.status == "matched"])[:8]
         return result
 
     def _build_score_detail(
@@ -96,10 +60,18 @@ class EvaluationAgent:
         job_classification: JobClassification | None = None,
     ) -> ScoreDetail:
         resume_blob = self._resume_blob(resume_info)
-        jd_skill_text = " ".join(jd_info.required_skills + jd_info.preferred_skills + jd_info.keywords)
-        jd_skills = unique_preserve_order(jd_info.keywords + extract_known_skills(jd_skill_text))
-        matched_skills = [skill for skill in jd_skills if skill.lower() in resume_blob]
-        skill_coverage = len(matched_skills) / max(len(jd_skills), 1)
+        required = self._skill_terms(jd_info.required_skills)
+        preferred = [s for s in self._skill_terms(jd_info.preferred_skills) if s.lower() not in {r.lower() for r in required}]
+        if not required:
+            required = [s for s in jd_info.keywords if s.lower() not in {p.lower() for p in preferred}]
+
+        def coverage(skills):
+            return sum(contains_term(skill, resume_blob) for skill in skills) / max(len(skills), 1)
+
+        if required and preferred:
+            skill_coverage = 0.85 * coverage(required) + 0.15 * coverage(preferred)
+        else:
+            skill_coverage = coverage(required or preferred)
 
         domain = (job_classification.domain if job_classification else "general") or "general"
         domain_terms = {
@@ -109,7 +81,7 @@ class EvaluationAgent:
             "general": ("项目", "系统", "平台", "负责", "优化", "实现", "协作"),
         }
         project_text = " ".join(resume_info.projects + resume_info.experience).lower()
-        project_hits = sum(1 for term in domain_terms.get(domain, domain_terms["general"]) if term in project_text)
+        project_hits = sum(1 for term in domain_terms.get(domain, domain_terms["general"]) if contains_term(term, project_text))
 
         engineering_terms = (
             "fastapi",
@@ -126,7 +98,7 @@ class EvaluationAgent:
             "报告下载",
             "vite",
         )
-        engineering_hits = sum(1 for term in engineering_terms if term in resume_blob)
+        engineering_hits = sum(1 for term in engineering_terms if contains_term(term, resume_blob))
         quality_units = [
             bool(resume_info.name),
             bool(resume_info.skills),
@@ -155,10 +127,12 @@ class EvaluationAgent:
             if not requirement:
                 continue
             keywords = extract_known_skills(requirement) or [requirement]
-            matched_keywords = [keyword for keyword in keywords if keyword.lower() in resume_blob]
+            matched_keywords = [keyword for keyword in keywords if contains_term(keyword, resume_blob)]
             evidence = self._find_resume_evidence(resume_info, requirement, matched_keywords)
+            concrete = " ".join(resume_info.projects + resume_info.experience)
+            concrete_coverage = all(contains_term(keyword, concrete) for keyword in keywords)
 
-            if evidence and len(matched_keywords) == len(keywords):
+            if evidence and len(matched_keywords) == len(keywords) and concrete_coverage:
                 status = "matched"
                 suggestion = f"建议补充 {requirement} 的量化结果、技术细节或个人贡献。"
             elif evidence or matched_keywords:
@@ -187,9 +161,13 @@ class EvaluationAgent:
             source_lower = source_text.lower()
             if not source_text:
                 continue
-            if requirement_lower in source_lower or any(keyword.lower() in source_lower for keyword in keywords):
+            if contains_term(requirement_lower, source_lower) or any(contains_term(keyword, source_lower) for keyword in keywords):
                 return source_text[:180]
         return ""
+
+    @staticmethod
+    def _skill_terms(items: list[str]) -> list[str]:
+        return unique_preserve_order([term for item in items for term in (extract_known_skills(item) or [item])])
 
     def _resume_blob(self, resume_info: ResumeInfo) -> str:
         return " ".join(
